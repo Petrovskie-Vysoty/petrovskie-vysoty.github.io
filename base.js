@@ -1,4 +1,4 @@
-/* global proj4, ymaps, peoples, polygons */
+/* global proj4, ymaps, peoples, polygonsPrev, polygonsCur */
 
 proj4.defs(
   "EPSG:3857",
@@ -16,7 +16,7 @@ function init() {
   });
   Object.keys(peoples).forEach((key) => {
     if (
-      !polygons.some((polygon) => key === polygon.properties.options.cad_num)
+      !polygonsCur.some((polygon) => key === polygon.properties.options.cad_num)
     ) {
       console.error("pv not found", key);
     }
@@ -26,34 +26,49 @@ function init() {
     default: "#ccc",
     withContact: "#50c878",
     withAddress: "#dc143c",
+    withNewAddress: "#660035ff",
   };
-  polygons.forEach((polygon) => {
+  polygonsCur.forEach((polygon) => {
+    const polygonPrev = polygonsPrev.find(
+      (prev) =>
+        prev.properties.options.cad_num === polygon.properties.options.cad_num
+    );
+    const isNew = !polygonPrev;
     const cadNum = polygon.properties.options.cad_num;
     const readableAddress = polygon.properties.options.readable_address;
     const hint = peoples[cadNum] || "";
     let address = "";
     let color = colors.default;
 
+    let newAddress = false;
+
+    if (
+      polygonPrev &&
+      polygonPrev.properties.options.readable_address !==
+        polygon.properties.options.readable_address
+    ) {
+      newAddress = true;
+    }
+
     if (
       readableAddress.match(/, улица [а-я]+/i) ||
       [
-        "ул. Адама Турчинского",
-        "ул Героев Севастополя",
-        "ул Валентины Гризодубовой",
-        "ул. Василия Горишнего",
-        "ул.Валентины Гризодубовой",
-        "ул Героев Альмы",
-        "ул Дмитрия Карбышева",
-        "ул Крылова",
-        "ул Литовского полка",
-        "ул Василия Горишнего",
-        "ул Романкошская",
-        "Литовского полка ул.",
-        "ул Эльмиры Аблямитовой",
-        "ул Евгения Семнякова",
+        "Адама Турчинского",
+        "Героев Севастополя",
+        "Валентины Гризодубовой",
+        "Героев Альмы",
+        "Дмитрия Карбышева",
+        "Крылова",
+        "Литовского полка",
+        "Василия Горишнего",
+        "Романкошская",
+        "Эльмиры Аблямитовой",
+        "Евгения Семнякова",
+        "Генерала Рудзевича",
+        "Географическая",
       ].some((street) => readableAddress.includes(street))
     ) {
-      color = colors.withAddress;
+      color = newAddress ? colors.withNewAddress : colors.withAddress;
       address = readableAddress;
     } else if (
       readableAddress.includes("улица Нестерова") &&
@@ -95,7 +110,8 @@ function init() {
         },
         {
           fillColor: color,
-          strokeColor: "#333",
+          strokeColor: isNew ? "#00f" : "#333",
+          strokeWidth: isNew ? 2 : 1,
           opacity: hint ? 0.8 : 0.3,
         }
       )
