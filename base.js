@@ -2,11 +2,11 @@
 
 proj4.defs(
   "EPSG:3857",
-  "+title=WGS 84 / Pseudo-Mercator +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs"
+  "+title=WGS 84 / Pseudo-Mercator +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs",
 );
 proj4.defs(
   "EPSG:4326",
-  "+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees"
+  "+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees",
 );
 
 function init() {
@@ -14,6 +14,123 @@ function init() {
     center: [44.912402, 34.122698],
     zoom: 16,
   });
+
+  let wateriImageBounds = [
+    [44.89597, 34.10111], // Нижний левый
+    [44.92831, 34.16473], // Верхний правый
+  ];
+
+  // Создаем объект GroundOverlay для наложения изображения
+  let waterOverlay = new ymaps.GeoObject(
+    {
+      geometry: {
+        type: "Rectangle",
+        coordinates: wateriImageBounds,
+      },
+      properties: {
+        hintContent: "Вода Крыма",
+      },
+    },
+    {
+      fillImageHref: "water.png",
+      fillOpacity: 0.7,
+      strokeWidth: 0,
+      zIndex: 100,
+    },
+  );
+
+  let sewageImageBounds = [[44.901271,34.10256],[44.95272,34.15468]];
+
+  // Создаем объект GroundOverlay для наложения изображения
+  let sewageOverlay = new ymaps.GeoObject(
+    {
+      geometry: {
+        type: "Rectangle",
+        coordinates: sewageImageBounds,
+      },
+      properties: {
+        hintContent: "Вода Крыма",
+      },
+    },
+    {
+      fillImageHref: "sewage.png",
+      fillOpacity: 0.7,
+      strokeWidth: 0,
+      zIndex: 100,
+    },
+  );
+
+  // map.geoObjects.add(sewageOverlay);
+
+  // Управление видимостью слоя воды
+  let waterVisible = false;
+  const waterToggleBtn = document.getElementById("waterToggle");
+
+  waterToggleBtn.addEventListener("click", function () {
+    waterVisible = !waterVisible;
+
+    if (waterVisible) {
+      map.geoObjects.add(waterOverlay);
+      waterToggleBtn.classList.add("active");
+    } else {
+      map.geoObjects.remove(waterOverlay);
+      waterToggleBtn.classList.remove("active");
+    }
+  });
+
+  // Функция для обновления слоя воды с новыми границами
+  function updateOverlay() {
+    // Удаляем старый слой
+    map.geoObjects.remove(sewageOverlay);
+
+    // Создаем новый слой с обновленными границами
+    sewageOverlay = new ymaps.GeoObject(
+      {
+        geometry: {
+          type: "Rectangle",
+          coordinates: sewageImageBounds,
+        },
+        properties: {
+          hintContent: "Вода Крыма",
+        },
+      },
+      {
+        fillImageHref: "sewage.png",
+        fillOpacity: 0.7,
+        strokeWidth: 0,
+        zIndex: 100,
+      },
+    );
+
+    map.geoObjects.add(sewageOverlay);
+  }
+  const delta = 0.001;
+
+  // Получаем элементы слайдеров
+  sewageImageBounds.forEach((_, a) => {
+    sewageImageBounds[a].forEach((_, b) => {
+      const value = sewageImageBounds[a][b];
+
+      const slider = document.getElementById(`${a}.${b}`);
+      if (!slider) {
+        return;
+      }
+      slider.value = value;
+      slider.max = value + delta;
+      slider.min = value - delta;
+
+      const valueLabel = document.getElementById(`${a}.${b}_l`);
+      // Обработчики изменения слайдеров
+      slider.addEventListener("input", function () {
+        const value = parseFloat(this.value);
+        sewageImageBounds[a][b] = value;
+        console.log(JSON.stringify(sewageImageBounds));
+        valueLabel.textContent = value.toFixed(5);
+        updateOverlay();
+      });
+    });
+  });
+
   Object.keys(peoples).forEach((key) => {
     if (
       !polygonsCur.some((polygon) => key === polygon.properties.options.cad_num)
@@ -31,7 +148,7 @@ function init() {
   polygonsCur.forEach((polygon) => {
     const polygonPrev = polygonsPrev.find(
       (prev) =>
-        prev.properties.options.cad_num === polygon.properties.options.cad_num
+        prev.properties.options.cad_num === polygon.properties.options.cad_num,
     );
     const isNew = !polygonPrev;
     const cadNum = polygon.properties.options.cad_num;
@@ -77,10 +194,10 @@ function init() {
       color = colors.withAddress;
     } else if (
       readableAddress.match(
-        /поз. по ГП-\d+|поз по ГП-\d+|поз по ГП - \d+|поз. ГП-\d+|поз. по ГП - \d+|поз. по ГП\d+|поз.по ГП-\d+|ГП-\d+|ГП - \d+/gi
+        /поз. по ГП-\d+|поз по ГП-\d+|поз по ГП - \d+|поз. ГП-\d+|поз. по ГП - \d+|поз. по ГП\d+|поз.по ГП-\d+|ГП-\d+|ГП - \d+/gi,
       ) ||
       readableAddress.match(
-        /"Петровские высоты"|«Петровские Высоты»|в районе Петровские высоты/gi
+        /"Петровские высоты"|«Петровские Высоты»|в районе Петровские высоты/gi,
       ) ||
       readableAddress === "Республика Крым, г. Симферополь" ||
       readableAddress === "Республика Крым, г Симферополь" ||
@@ -113,14 +230,14 @@ function init() {
           strokeColor: isNew ? "#00f" : "#333",
           strokeWidth: isNew ? 2 : 1,
           opacity: hint ? 0.8 : 0.3,
-        }
-      )
+        },
+      ),
     );
   });
 }
 
 fetch(
-  "https://docs.google.com/spreadsheets/d/1NX9xJNbNw2kOiaw1AgzZAJGff22J66-lcWQh9Tk9WiU/export?format=csv&id=1NX9xJNbNw2kOiaw1AgzZAJGff22J66-lcWQh9Tk9WiU"
+  "https://docs.google.com/spreadsheets/d/1NX9xJNbNw2kOiaw1AgzZAJGff22J66-lcWQh9Tk9WiU/export?format=csv&id=1NX9xJNbNw2kOiaw1AgzZAJGff22J66-lcWQh9Tk9WiU",
 )
   .then((res) => res.text())
   .then((res) => {
