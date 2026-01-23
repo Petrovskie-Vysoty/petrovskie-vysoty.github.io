@@ -16,8 +16,8 @@ function init() {
   });
 
   let wateriImageBounds = [
-    [44.89597, 34.10111], // Нижний левый
-    [44.92831, 34.16473], // Верхний правый
+    [44.89597, 34.10111],
+    [44.92831, 34.16473],
   ];
 
   // Создаем объект GroundOverlay для наложения изображения
@@ -39,7 +39,10 @@ function init() {
     },
   );
 
-  let sewageImageBounds = [[44.901271,34.10256],[44.95272,34.15468]];
+  let sewageImageBounds = [
+    [44.901405, 34.10273],
+    [44.9522, 34.15417],
+  ];
 
   // Создаем объект GroundOverlay для наложения изображения
   let sewageOverlay = new ymaps.GeoObject(
@@ -60,7 +63,21 @@ function init() {
     },
   );
 
-  // map.geoObjects.add(sewageOverlay);
+  // Управление видимостью слоя воды
+  let sewageVisible = false;
+  const sewageToggleBtn = document.getElementById("sewageToggle");
+
+  sewageToggleBtn.addEventListener("click", function () {
+    sewageVisible = !sewageVisible;
+
+    if (sewageVisible) {
+      map.geoObjects.add(sewageOverlay);
+      sewageToggleBtn.classList.add("active");
+    } else {
+      map.geoObjects.remove(sewageOverlay);
+      sewageToggleBtn.classList.remove("active");
+    }
+  });
 
   // Управление видимостью слоя воды
   let waterVisible = false;
