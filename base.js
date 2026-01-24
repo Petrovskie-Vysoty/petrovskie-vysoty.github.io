@@ -11,7 +11,7 @@ proj4.defs(
 
 function init() {
   const map = new ymaps.Map("map", {
-    center: [44.912402, 34.122698],
+    center: [44.913, 34.122698],
     zoom: 16,
   });
 
@@ -162,12 +162,20 @@ function init() {
     withAddress: "#dc143c",
     withNewAddress: "#660035ff",
   };
+
+  let newCount = 0;
+  let newAddressCount = 0;
   polygonsCur.forEach((polygon) => {
     const polygonPrev = polygonsPrev.find(
       (prev) =>
         prev.properties.options.cad_num === polygon.properties.options.cad_num,
     );
     const isNew = !polygonPrev;
+
+    if (isNew) {
+      newCount++;
+    }
+
     const cadNum = polygon.properties.options.cad_num;
     const readableAddress = polygon.properties.options.readable_address;
     const hint = peoples[cadNum] || "";
@@ -182,6 +190,10 @@ function init() {
         polygon.properties.options.readable_address
     ) {
       newAddress = true;
+    }
+
+    if (newAddress) {
+      newAddressCount++;
     }
 
     if (
@@ -250,6 +262,36 @@ function init() {
         },
       ),
     );
+  });
+
+  console.log("новых участков", newCount);
+  console.log("новых адресов", newAddressCount);
+
+  // потерянные участки
+  polygonsPrev.forEach((polygon) => {
+    const current = polygonsCur.find(
+      (cur) =>
+        cur.properties.options.cad_num === polygon.properties.options.cad_num,
+    );
+
+    if (!current) {
+      map.geoObjects.add(
+        new ymaps.Polygon(
+          [
+            polygon.geometry.coordinates[0].map((v) => {
+              const conv = proj4("EPSG:3857", "EPSG:4326", v);
+
+              return [conv[1] + 0.000065, conv[0] + 0.000075];
+            }),
+          ],
+          {
+            fillColor: "#f0f",
+            strokeWidth: 0,
+            opacity: 1,
+          },
+        ),
+      );
+    }
   });
 }
 
