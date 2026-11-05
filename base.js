@@ -63,7 +63,31 @@ function init() {
     },
   );
 
-  // Управление видимостью слоя воды
+  let gasImageBounds = [
+    [44.900938, 34.10759],
+    [44.9295, 34.136133],
+  ];
+
+  // Создаем объект GroundOverlay для наложения изображения
+  let gasOverlay = new ymaps.GeoObject(
+    {
+      geometry: {
+        type: "Rectangle",
+        coordinates: gasImageBounds,
+      },
+      properties: {
+        hintContent: "Крымгазсети",
+      },
+    },
+    {
+      fillImageHref: "gas.png",
+      fillOpacity: 0.7,
+      strokeWidth: 0,
+      zIndex: 100,
+    },
+  );
+
+  // Управление видимостью слоя канализации
   let sewageVisible = false;
   const sewageToggleBtn = document.getElementById("sewageToggle");
 
@@ -95,38 +119,54 @@ function init() {
     }
   });
 
+  // Управление видимостью слоя газа
+  let gasVisible = false;
+  const gasToggleBtn = document.getElementById("gasToggle");
+
+  gasToggleBtn.addEventListener("click", function () {
+    gasVisible = !gasVisible;
+
+    if (gasVisible) {
+      map.geoObjects.add(gasOverlay);
+      gasToggleBtn.classList.add("active");
+    } else {
+      map.geoObjects.remove(gasOverlay);
+      gasToggleBtn.classList.remove("active");
+    }
+  });
+
   // Функция для обновления слоя воды с новыми границами
   function updateOverlay() {
     // Удаляем старый слой
-    map.geoObjects.remove(sewageOverlay);
+    map.geoObjects.remove(gasOverlay);
 
     // Создаем новый слой с обновленными границами
-    sewageOverlay = new ymaps.GeoObject(
+    gasOverlay = new ymaps.GeoObject(
       {
         geometry: {
           type: "Rectangle",
-          coordinates: sewageImageBounds,
+          coordinates: gasImageBounds,
         },
         properties: {
           hintContent: "Вода Крыма",
         },
       },
       {
-        fillImageHref: "sewage.png",
+        fillImageHref: "gas.png",
         fillOpacity: 0.7,
         strokeWidth: 0,
         zIndex: 100,
       },
     );
 
-    map.geoObjects.add(sewageOverlay);
+    map.geoObjects.add(gasOverlay);
   }
   const delta = 0.001;
 
   // Получаем элементы слайдеров
-  sewageImageBounds.forEach((_, a) => {
-    sewageImageBounds[a].forEach((_, b) => {
-      const value = sewageImageBounds[a][b];
+  gasImageBounds.forEach((_, a) => {
+    gasImageBounds[a].forEach((_, b) => {
+      const value = gasImageBounds[a][b];
 
       const slider = document.getElementById(`${a}.${b}`);
       if (!slider) {
@@ -140,8 +180,8 @@ function init() {
       // Обработчики изменения слайдеров
       slider.addEventListener("input", function () {
         const value = parseFloat(this.value);
-        sewageImageBounds[a][b] = value;
-        console.log(JSON.stringify(sewageImageBounds));
+        gasImageBounds[a][b] = value;
+        console.log(JSON.stringify(gasImageBounds));
         valueLabel.textContent = value.toFixed(5);
         updateOverlay();
       });
@@ -160,7 +200,7 @@ function init() {
     default: "#ccc",
     withContact: "#50c878",
     withAddress: "#dc143c",
-    withNewAddress: "#660035ff",
+    withNewAddress: "#660035",
   };
 
   let newCount = 0;
@@ -178,7 +218,7 @@ function init() {
 
     const cadNum = polygon.properties.options.cad_num;
     const readableAddress = polygon.properties.options.readable_address;
-    const hint = peoples[cadNum] || "";
+    let userContact = peoples[cadNum] || "";
     let address = "";
     let color = colors.default;
 
@@ -237,9 +277,62 @@ function init() {
       console.log("unknown", cadNum, readableAddress);
     }
 
-    if (hint) {
+    if (userContact) {
       color = colors.withContact;
-      address = "";
+    }
+
+    if (
+      false &&
+      [
+        "Петровские высоты",
+        "Петровские Высоты",
+        "Петровский высоты",
+        "Петровский Высоты",
+        "Петровские высотв",
+        "петровские высоты",
+        "Петровске высоты",
+
+        "Крылова",
+
+        "Адама Турчинского",
+        "Александра Иваниченко",
+        "Александра Меншикова",
+        "Алексея Любимского",
+        "Бекира Чобан-заде",
+        "Бориса Аршинцева",
+        "Валентина Гаршина",
+        "Валентины Гризодубовой",
+        "Валерия Аверкина",
+        "Василия Горишнего",
+        "Василия Шломовича",
+        "Виктора Гудкова",
+        "Вячеслава Зарубина",
+        "Генерала Рудзевича",
+        "Географическая",
+        "Героев Альмы",
+        "Героев Севастополя",
+        "Дмитрия Быстролетова",
+        "Дмитрия Карбышева",
+        "Евгения Семнякова",
+        "Защитников Отечества",
+        "Ильяса Бахшиша",
+        "Крымского ополчения",
+        "Литовского полка",
+        "Максима Дзюбина",
+        "Нестерова",
+        "Николая Эрнста",
+        "Романкошская",
+        "Суздальского полка",
+        "Фаины Раневской",
+        "Чесменская",
+        "Эдуарда Тотлебена",
+        "Эльмиры Аблямитовой",
+      ].some((v) => readableAddress.includes(v))
+    ) {
+      color = "#f0f";
+      userContact = "1";
+    } else {
+      //console.log("новая улица", readableAddress);
     }
 
     map.geoObjects.add(
@@ -252,13 +345,15 @@ function init() {
           }),
         ],
         {
-          hintContent: `${cadNum} ${address} ${hint}`,
+          hintContent: [cadNum, address, userContact]
+            .filter(Boolean)
+            .join("<br />"),
         },
         {
           fillColor: color,
           strokeColor: isNew ? "#00f" : "#333",
           strokeWidth: isNew ? 2 : 1,
-          opacity: hint ? 0.8 : 0.3,
+          opacity: userContact ? 0.8 : 0.3,
         },
       ),
     );
